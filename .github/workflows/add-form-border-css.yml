@@ -55,3 +55,4 @@ jobs:
           git add index.html .github/workflows/add-form-border-css.yml
           git commit -m "Add black borders to offer form fields"
           git push
+# trigger rerun
