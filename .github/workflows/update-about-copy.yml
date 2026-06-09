@@ -1,0 +1,61 @@
+name: Update About Us copy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/update-about-copy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-about:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace About Us body copy
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('index.html')
+          html = path.read_text(encoding='utf-8')
+          original = html
+
+          new_copy = (
+              '<p class="text-lg text-muted-foreground mb-6">At Hubbard Housing Realty, we believe selling a property should feel clear, simple, and stress-free. Since beginning our real estate journey, we\'ve focused on helping homeowners understand their options and find solutions that fit their situation. We work with sellers who may be dealing with repairs, inherited properties, difficult tenants, unwanted homes, or simply a need for a faster and more flexible sale. Our process is built around honest communication, transparency, and respect, so you can feel comfortable knowing what\'s happening every step of the way.</p>'
+          )
+
+          # Replace the About section body copy after the H2 and before the image column.
+          pattern = (
+              r'(<span[^>]*>About Hubbard Housing Realty</span>'
+              r'<h2[^>]*>Local Minnesota Home Buyers You Can Trust</h2>)'
+              r'.*?'
+              r'(</div><div class="relative"><div class="aspect-\[4/3\] rounded-lg overflow-hidden shadow-xl"><img src="\./Index_files/photo-1650303323526-9e3958212685")'
+          )
+          replacement = r'\1' + new_copy + r'\2'
+          html, count = re.subn(pattern, replacement, html, count=1, flags=re.DOTALL)
+
+          if count != 1:
+              raise SystemExit(f'About section replacement failed; matched {count} sections.')
+
+          # Keep the repo clean by deleting this one-time workflow after it runs.
+          workflow_path = Path('.github/workflows/update-about-copy.yml')
+          if workflow_path.exists():
+              workflow_path.unlink()
+
+          if html == original:
+              raise SystemExit('No changes were made.')
+
+          path.write_text(html, encoding='utf-8')
+          PY
+      - name: Commit About Us copy update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/update-about-copy.yml
+          git commit -m "Update About Us copy"
+          git push
