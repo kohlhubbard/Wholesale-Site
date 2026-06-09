@@ -1,0 +1,77 @@
+name: Update phone and remove recent purchases
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/update-phone-remove-recent-purchases.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update phone number and remove recent purchases section
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path('index.html')
+          html = path.read_text(encoding='utf-8')
+          original = html
+
+          # Update phone links and visible phone text across the page.
+          phone_replacements = {
+              'tel:+15551234567': 'tel:+16514036857',
+              '(555) 123-4567': '651-403-6857',
+              '555-123-4567': '651-403-6857',
+              '5551234567': '6514036857',
+          }
+          for old, new in phone_replacements.items():
+              html = html.replace(old, new)
+
+          # Remove the Recent Purchases link from the top navigation and any footer quick links.
+          html = re.sub(
+              r'<a href="#recent-purchases"[^>]*>Recent Purchases</a>',
+              '',
+              html,
+              flags=re.DOTALL,
+          )
+          html = re.sub(
+              r'<li>\s*<a href="#recent-purchases"[^>]*>Recent Purchases</a>\s*</li>',
+              '',
+              html,
+              flags=re.DOTALL,
+          )
+
+          # Remove the full Recent Purchases section from the website.
+          html = re.sub(
+              r'<section id="recent-purchases".*?</section>\s*(?=<section)',
+              '',
+              html,
+              count=1,
+              flags=re.DOTALL,
+          )
+
+          # Remove this temporary workflow after it runs so the repo stays clean.
+          workflow_path = Path('.github/workflows/update-phone-remove-recent-purchases.yml')
+          if workflow_path.exists():
+              workflow_path.unlink()
+
+          if html == original:
+              raise SystemExit('No changes were made; patterns may need updating.')
+
+          path.write_text(html, encoding='utf-8')
+          PY
+      - name: Commit website updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github/workflows/update-phone-remove-recent-purchases.yml
+          git commit -m "Update phone number and remove recent purchases"
+          git push
