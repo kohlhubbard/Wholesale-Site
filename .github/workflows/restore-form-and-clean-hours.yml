@@ -23,13 +23,10 @@ jobs:
           from pathlib import Path
           import subprocess, re
 
-          # Restore the full homepage from the known good commit where the form existed.
           subprocess.run(['git', 'checkout', '321697add9b568dc605a821044bba349a2b89560', '--', 'index.html'], check=True)
-
           path = Path('index.html')
           html = path.read_text(encoding='utf-8')
 
-          # Phone number updates.
           for old, new in {
               'tel:+15551234567': 'sms:+16514036857',
               'tel:5551234567': 'sms:+16514036857',
@@ -41,7 +38,6 @@ jobs:
           }.items():
               html = html.replace(old, new)
 
-          # Email updates.
           for old, new in {
               'info@hhrealtyteam.com': 'kohl@hhrealty.com',
               'mailto:info@hhrealtyteam.com': 'mailto:kohl@hhrealty.com',
@@ -50,25 +46,14 @@ jobs:
           }.items():
               html = html.replace(old, new)
 
-          # Remove all structured hours text only — do NOT remove the parent form/contact section.
-          hour_variants = [
-              'Mon-Sat 8am-7pm CST',
-              'Mon–Sat 8am–7pm CST',
-              'Mon-Sat 8am - 7pm CST',
-              'Mon-Sat 8 AM-7 PM CST',
-          ]
-          for hours in hour_variants:
+          for hours in ['Mon-Sat 8am-7pm CST', 'Mon–Sat 8am–7pm CST', 'Mon-Sat 8am - 7pm CST', 'Mon-Sat 8 AM-7 PM CST']:
               html = html.replace(hours, '')
 
-          # Remove Recent Purchases nav/footer links and the full Recent Purchases section.
           html = re.sub(r'<a href="#recent-purchases"[^>]*>Recent Purchases</a>', '', html, flags=re.DOTALL)
           html = re.sub(r'<li>\s*<a href="#recent-purchases"[^>]*>Recent Purchases</a>\s*</li>', '', html, flags=re.DOTALL)
           html = re.sub(r'<section id="recent-purchases".*?</section>\s*(?=<section)', '', html, count=1, flags=re.DOTALL)
-
-          # Remove obvious fake review/testimonial overlay if present.
           html = re.sub(r'<div class="absolute bottom-4 left-4 right-4 bg-white/95.*?John M\. - Brooklyn Park.*?</div>\s*</div>', '</div>', html, count=1, flags=re.DOTALL)
 
-          # Clean mojibake symbols.
           def s(*codes): return ''.join(chr(c) for c in codes)
           for bad, good in {
               s(0x00E2, 0x20AC, 0x00A2): ' ',
@@ -88,22 +73,10 @@ jobs:
           html = html.replace('Minnesota-based Local team', 'Minnesota-based local team')
           html = html.replace('A fair cash offer for your MN home  -  on your timeline.', 'A fair cash offer for your MN home on your timeline.')
           html = html.replace('A fair cash offer for your MN home - on your timeline.', 'A fair cash offer for your MN home on your timeline.')
-          for old, new in {
-              '7 - 14 days': '7 to 14 days',
-              '7-14 days': '7 to 14 days',
-              '24 - 48 hours': '24 to 48 hours',
-              '24-48 hours': '24 to 48 hours',
-              '15 - 30 minutes': '15 to 30 minutes',
-              '15-30 minutes': '15 to 30 minutes',
-              '30 - 45+': '30 to 45+',
-              '30-45+': '30 to 45+',
-              '7 - 30 days': '7 to 30 days',
-              '7-30 days': '7 to 30 days',
-          }.items():
+          for old, new in {'7 - 14 days': '7 to 14 days','7-14 days': '7 to 14 days','24 - 48 hours': '24 to 48 hours','24-48 hours': '24 to 48 hours','15 - 30 minutes': '15 to 30 minutes','15-30 minutes': '15 to 30 minutes','30 - 45+': '30 to 45+','30-45+': '30 to 45+','7 - 30 days': '7 to 30 days','7-30 days': '7 to 30 days'}.items():
               html = html.replace(old, new)
           html = re.sub(chr(0x00E2) + r'.{0,2}', '', html)
 
-          # Change call wording to text wording.
           for old, new in {
               'Fill out our simple form or give us a call.': 'Fill out our simple form or shoot us a text!',
               'give us a call': 'shoot us a text',
@@ -118,7 +91,6 @@ jobs:
               html = html.replace(old, new)
           html = re.sub(r'href="tel:\+16514036857"([^>]*>\s*(?:<svg.*?</svg>)?\s*<span>Shoot us a text!</span>)', r'href="sms:+16514036857"\1', html, flags=re.DOTALL)
 
-          # About Us body replacement.
           about_start = html.find('>About Hubbard Housing Realty</span><h2')
           if about_start != -1:
               h2_end = html.find('</h2>', about_start)
@@ -128,7 +100,6 @@ jobs:
                   new_about = '</h2><p class="text-lg text-muted-foreground mb-6">At Hubbard Housing Realty, we believe selling a property should feel clear, simple, and stress-free. Since beginning our real estate journey, we\'ve focused on helping homeowners understand their options and find solutions that fit their situation. We work with sellers who may be dealing with repairs, inherited properties, difficult tenants, unwanted homes, or simply a need for a faster and more flexible sale. Our process is built around honest communication, transparency, and respect, so you can feel comfortable knowing what\'s happening every step of the way.</p></div>'
                   html = html[:h2_end] + new_about + html[img_start:]
 
-          # Add thin black borders to the customer form fields.
           css = '''
       /* Thin black borders for customer-facing offer form fields */
       .contact-offer-form input:not([type="hidden"]),
@@ -141,17 +112,14 @@ jobs:
           if 'Thin black borders for customer-facing offer form fields' not in html:
               html = html.replace('</style>\n    <script>\n      document.addEventListener', css + '    </style>\n    <script>\n      document.addEventListener', 1)
 
-          # Verify form still exists.
           if 'id="lead-form"' not in html and "id='lead-form'" not in html:
               raise SystemExit('Safety check failed: lead form missing after restore.')
           if 'Mon-Sat 8am-7pm CST' in html:
               raise SystemExit('Safety check failed: hours text still exists.')
 
-          # Remove this workflow after it runs.
           wf = Path('.github/workflows/restore-form-and-clean-hours.yml')
           if wf.exists():
               wf.unlink()
-
           path.write_text(html, encoding='utf-8')
           PY
       - name: Commit restored form page
@@ -161,3 +129,4 @@ jobs:
           git add index.html .github/workflows/restore-form-and-clean-hours.yml
           git commit -m "Restore seller form and remove hours text only"
           git push
+# trigger restore
