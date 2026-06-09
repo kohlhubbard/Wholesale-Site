@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - .github/workflows/add-form-border-css.yml
+      - '.github/workflows/add-form-border-css.yml'
   workflow_dispatch:
 
 permissions:
@@ -30,14 +30,15 @@ jobs:
       .contact-offer-form textarea,
       .contact-offer-form select {
         border: 1px solid #000 !important;
+        box-shadow: none !important;
       }
 '''
 
           if 'Thin black borders for customer-facing offer form fields' not in html:
-              marker = '      .contact-offer-form select:focus-visible {\n        outline: 3px solid rgb(17 24 39 / 18%);\n        outline-offset: 1px;\n      }\n'
+              marker = '</style>\n    <script>\n      document.addEventListener'
               if marker not in html:
-                  raise SystemExit('Could not find custom form style block marker.')
-              html = html.replace(marker, marker + css, 1)
+                  raise SystemExit('Could not find style/script marker.')
+              html = html.replace(marker, css + '    </style>\n    <script>\n      document.addEventListener', 1)
 
           workflow_path = Path('.github/workflows/add-form-border-css.yml')
           if workflow_path.exists():
@@ -55,4 +56,4 @@ jobs:
           git add index.html .github/workflows/add-form-border-css.yml
           git commit -m "Add black borders to offer form fields"
           git push
-# trigger rerun
+# trigger rerun 2
