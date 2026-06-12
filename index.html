@@ -57,6 +57,66 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     </style>
     <script>
       document.addEventListener('DOMContentLoaded', () => {
+        const faqAnswers = new Map([
+          ['How fast can you close?', 'We can often close in as little as 7 to 14 days. The exact timing depends on title work and the closing date that works best for you.'],
+          ['Are there any fees or commissions?', 'No. There are no agent commissions or hidden fees, and we cover the standard closing costs associated with our purchase.'],
+          ['Do I need to clean or make repairs?', 'No. We buy homes as-is, so you do not need to make repairs, clean the property, or prepare it for showings.'],
+          ['How do you determine the offer price?', 'We consider the property condition, location, comparable nearby sales, and the cost of any updates or repairs the home may need.'],
+          ["What if I'm in foreclosure or behind on payments?", 'Contact us as soon as possible. We can review your timeline and explain whether a cash sale may be an option, but we recommend also speaking with your lender and a qualified professional.'],
+          ['Can you buy inherited properties or properties in probate?', 'Yes. We can purchase inherited properties and work with the people handling an estate. Probate requirements vary, so the closing timeline depends on the estate and title status.'],
+          ['What if there are tenants in the property?', 'We can buy tenant-occupied properties. We will review the lease and work with you on a respectful plan that follows the applicable requirements.'],
+          ['Do you buy condos, townhomes, or multi-family properties?', 'Yes. We consider single-family homes, condos, townhomes, and multi-family properties throughout Minnesota.'],
+          ['What areas of Minnesota do you serve?', 'We serve homeowners throughout Minnesota, including the Twin Cities, Duluth, Rochester, and surrounding communities. Contact us to confirm your property area.'],
+          ['Am I obligated to accept your offer?', 'No. Our offer is free and carries no obligation. You decide whether the price and terms are right for you.'],
+          ['Who handles the closing?', 'A local title company handles the closing, title work, and transfer of funds so the sale is documented properly.'],
+          ['What documents do I need to sell?', 'The title company will confirm what is needed for your property. Typically, sellers need a government-issued ID and any available ownership, mortgage, lease, or estate documents.'],
+          ['Can you explain the difference between you and a real estate agent?', 'We are direct buyers, not agents listing your home for someone else to purchase. A cash sale can be faster and avoids showings and commissions, while listing may be a better fit for sellers focused on maximizing market exposure.'],
+          ['What if my house needs major repairs?', 'That is okay. We buy properties as-is, including homes with major repair needs, deferred maintenance, or unwanted belongings.'],
+          ['How is this different from iBuyers like Opendoor?', 'We are a local Minnesota-based team. We review each property directly and provide a written offer based on the home and your situation rather than relying only on an automated valuation.'],
+        ]);
+
+        const faqItems = document.querySelectorAll('#faq [data-slot="accordion-item"]');
+        faqItems.forEach((item) => {
+          const button = item.querySelector('[data-slot="accordion-trigger"]');
+          const panel = item.querySelector('[data-slot="accordion-content"]');
+          const question = button?.textContent.trim();
+          const answer = faqAnswers.get(question);
+
+          if (!button || !panel || !answer) return;
+
+          const answerText = document.createElement('p');
+          answerText.className = 'pb-6 text-muted-foreground leading-relaxed';
+          answerText.textContent = answer;
+          panel.replaceChildren(answerText);
+
+          button.addEventListener('click', () => {
+            const willOpen = button.getAttribute('aria-expanded') !== 'true';
+
+            faqItems.forEach((otherItem) => {
+              const otherButton = otherItem.querySelector('[data-slot="accordion-trigger"]');
+              const otherPanel = otherItem.querySelector('[data-slot="accordion-content"]');
+
+              otherItem.setAttribute('data-state', 'closed');
+              otherItem.querySelector('h3')?.setAttribute('data-state', 'closed');
+              otherButton?.setAttribute('data-state', 'closed');
+              otherButton?.setAttribute('aria-expanded', 'false');
+              otherPanel?.setAttribute('data-state', 'closed');
+              if (otherPanel) otherPanel.hidden = true;
+            });
+
+            if (willOpen) {
+              item.setAttribute('data-state', 'open');
+              item.querySelector('h3')?.setAttribute('data-state', 'open');
+              button.setAttribute('data-state', 'open');
+              button.setAttribute('aria-expanded', 'true');
+              panel.setAttribute('data-state', 'open');
+              panel.hidden = false;
+            }
+          });
+        });
+
+        document.querySelector('a[href="/disclosures.html"]')?.remove();
+
         const leadForm = document.getElementById('lead-form');
         const ctaLabels = new Set([
           'Get My Offer',
